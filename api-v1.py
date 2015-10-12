@@ -1,26 +1,31 @@
-from flask import Flask, request
+# https://flask-basicauth.readthedocs.org/en/latest/
+# https://flask-restful.readthedocs.org/en/latest/index.html
+# https://github.com/miguelgrinberg/REST-auth
+# https://github.com/miguelgrinberg/REST-tutorial/blob/master/rest-server-v2.py
+
+from flask import Flask, request, make_response, jsonify, abort
 from flask_restful import Resource, Api
-#from flask.ext.httpauth import HTTPBasicAuth
-from json import dumps
+from flask.ext.httpauth import HTTPBasicAuth
+import json
 from sqlalchemy import create_engine
 
 db = create_engine('sqlite:///servers.db')
 
 app = Flask(__name__)
 api = Api(app)
-#auth = HTTPBasicAuth()
+auth = HTTPBasicAuth()
 
-#@auth.get_password
-#def get_password(username):
-#    if username == 'frank':
-#        return 'python'
-#    return None
+@auth.get_password
+def get_password(username):
+    if username == 'mfrank':
+        return 'python'
+    return None
 
-#@auth.error_handler
-#def unauthorized():
+@auth.error_handler
+def unauthorized():
     # return 403 instead of 401 to prevent browsers from displaying the default
     # auth dialog
-#    return make_response(jsonify({'message': 'Unauthorized access'}), 403)
+    return make_response(jsonify({'message': 'Unauthorized access'}), 403)
 
 # PUBLIC API QUERIES
 class ServerList(Resource):
@@ -41,9 +46,13 @@ class ManageServer(Resource):
 	#decorators = [auth.login_required]
 
 	def get(self, servername):
+		# need to ensure /v1/manage/ doesn't return empty json
+		# ^
 		conn = db.connect()
 		query = conn.execute("select * from servers where server='%s'" % servername.lower())
 		result = {'server': [dict(zip(tuple (query.keys()) ,i)) for i in query.cursor]}
+		if not len(result['server']) > 0:
+			abort(404)
 		return result
 
 	# PUT
