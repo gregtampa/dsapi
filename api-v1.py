@@ -5,7 +5,7 @@
 
 from flask import Flask, request, make_response, jsonify, abort
 from flask_restful import Resource, Api
-from flask.ext.httpauth import HTTPBasicAuth
+from flask.ext.basicauth import BasicAuth
 import json
 from sqlalchemy import create_engine
 
@@ -13,19 +13,11 @@ db = create_engine('sqlite:///servers.db')
 
 app = Flask(__name__)
 api = Api(app)
-auth = HTTPBasicAuth()
+app.config['BASIC_AUTH_USERNAME'] = 'john'
+app.config['BASIC_AUTH_PASSWORD'] = 'matrix'
+basic_auth = BasicAuth(app)
 
-@auth.get_password
-def get_password(username):
-    if username == 'mfrank':
-        return 'python'
-    return None
 
-@auth.error_handler
-def unauthorized():
-    # return 403 instead of 401 to prevent browsers from displaying the default
-    # auth dialog
-    return make_response(jsonify({'message': 'Unauthorized access'}), 403)
 
 # PUBLIC API QUERIES
 class ServerList(Resource):
@@ -42,9 +34,10 @@ class Server(Resource):
 		return result
 
 # PRIVATE/RESTRICTED API QUERIES
+
 class ManageServer(Resource):
 	#decorators = [auth.login_required]
-
+	@basic_auth.required
 	def get(self, servername):
 		# need to ensure /v1/manage/ doesn't return empty json
 		# ^
