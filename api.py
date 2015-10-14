@@ -42,7 +42,7 @@ class Community(Resource): # convert to return official or community ?
 		result = {'server': [dict(zip(tuple (query.keys()) ,i)) for i in query.cursor]}
 		return result # return router information
 
-class Query(Resource): # router db manangement interface
+class Query(Resource): # query information on a single router by router address
 	@basic_auth.required
 	def get(self, servername):
 		conn = db.connect()
