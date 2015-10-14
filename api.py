@@ -71,9 +71,14 @@ class Manage(Resource):
 		args = self.parser.parse_args(strict=True)
 		s,p,t = args['server'],args['port'],args['type']
 		if not router_exists(s):
-			conn = db.connect()
-			query = conn.execute("insert into servers values ('%s', '%i', '%s')" % (s.lower(), p, t.lower()))
-			return '', 204
+			if p is not None and t is not None:
+				conn = db.connect()
+				query = conn.execute("insert into servers values ('%s', '%i', '%s')" % (s.lower(), p, t.lower()))
+				return {'result': True}, 204
+			else:
+				return {'result': False}, 400
+		else:
+			return {'result': False}, 400
 
 
 	def put(self): # we're updating a router here
@@ -84,7 +89,9 @@ class Manage(Resource):
 			if p is not None and t is not None:
 				conn = db.connect()
 				query = conn.execute("update servers set port='%i', type='%s' where server='%s'" % (p, t.lower(), s.lower()))
-				return '', 204
+				return {'result': True}, 204
+		else:
+			return {'result': False}, 400
 
 
 	def delete(self): # we're removing a router here
@@ -93,7 +100,9 @@ class Manage(Resource):
 		if router_exists(s):
 			conn = db.connect()
 			query = conn.execute("delete from servers where server='%s'" % s.lower())
-			return '', 201
+			return {'result': True}, 201
+		else:
+			return {'result': False}, 400
 
 
 
