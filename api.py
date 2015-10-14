@@ -16,10 +16,6 @@ app.config['BASIC_AUTH_USERNAME'] = 'demo'
 app.config['BASIC_AUTH_PASSWORD'] = 'demo'
 basic_auth = BasicAuth(app)
 
-parser = reqparse.RequestParser(trim=True)
-parser.add_argument('server')
-parser.add_argument('port', type=int)
-parser.add_argument('type')
 
 # PUBLIC API QUERIES
 class All(Resource): # returns the full list of routers
@@ -56,27 +52,41 @@ class Query(Resource): # query information on a single router by router address
 # PRIVATE/RESTRICTED API QUERIES
 class Manage(Resource):
 	@basic_auth.required
+
+	def __init__(self):
+		self.parser = reqparse.RequestParser(trim=True)
+		self.parser.add_argument('server', required=True) # server/router address always required
+		self.parser.add_argument('port', type=int)
+		self.parser.add_argument('type')
+		super(Manage, self).__init__()
+
+
 	def post(self): # we're adding a new router here
-		args = parser.parse_args(strict=True)
+		args = self.parser.parse_args(strict=True)
 		s,p,t = args['server'],args['port'],args['type']
 
-		print '%s : %d - %s' % ( s,p,t )
+		conn = db.connect()
+		query = conn.execute("select count(*) from servers where server='%s'" % s.lower())
+		for row in query:
+			print row
 		return '', 204
 
-	@basic_auth.required
+
 	def put(self): # we're updating a router here
 		# need to make sure that args['server'] exists in db and then update
-		args = parser.parse_args(strict=True)
+		args = self.parser.parse_args(strict=True)
 		s,p,t = args['server'],args['port'],args['type']
-		print '%s : %d - %s' % ( s,p,t )
+		if p is not None and t is not None:
+			print 'we should update the db' # update the db where server=s
 		return '', 204
 
-	@basic_auth.required
+
 	def delete(self): # we're removing a router here
-		args = parser.parse_args(strict=True)
-		s,p,t = args['server'],args['port'],args['type']
-		if s == 'None':
-			abort(404) # error is bad and you should feel bad, seriously fix this 
+		args = self.parser.parse_args(strict=True)
+		s = args['server']
+		conn = db.connect()
+		query = conn.execute("select * from servers where server='%s'" % s.lower())
+
 		return s, 201
 
 
