@@ -17,6 +17,12 @@ app.config['BASIC_AUTH_PASSWORD'] = 'demo'
 basic_auth = BasicAuth(app)
 
 
+def router_exists(router):
+	conn = db.connect()
+	query = conn.execute("select count(*) from servers where server='%s'" % router.lower()).fetchone()
+	if query[0] == 1:
+		return True
+
 # PUBLIC API QUERIES
 class All(Resource): # returns the full list of routers
 	def get(self):
@@ -64,30 +70,30 @@ class Manage(Resource):
 	def post(self): # we're adding a new router here
 		args = self.parser.parse_args(strict=True)
 		s,p,t = args['server'],args['port'],args['type']
-
-		conn = db.connect()
-		query = conn.execute("select count(*) from servers where server='%s'" % s.lower())
-		for row in query:
-			print row
-		return '', 204
+		if not router_exists(s):
+			conn = db.connect()
+			query = conn.execute("insert into servers values ('%s', '%i', '%s')" % (s.lower(), p, t.lower()))
+			return '', 204
 
 
 	def put(self): # we're updating a router here
 		# need to make sure that args['server'] exists in db and then update
 		args = self.parser.parse_args(strict=True)
 		s,p,t = args['server'],args['port'],args['type']
-		if p is not None and t is not None:
-			print 'we should update the db' # update the db where server=s
-		return '', 204
+		if router_exists(s):
+			if p is not None and t is not None:
+				conn = db.connect()
+				query = conn.execute("update servers set port='%i', type='%s' where server='%s'" % (p, t.lower(), s.lower()))
+				return '', 204
 
 
 	def delete(self): # we're removing a router here
 		args = self.parser.parse_args(strict=True)
 		s = args['server']
-		conn = db.connect()
-		query = conn.execute("select * from servers where server='%s'" % s.lower())
-
-		return s, 201
+		if router_exists(s):
+			conn = db.connect()
+			query = conn.execute("delete from servers where server='%s'" % s.lower())
+			return '', 201
 
 
 
